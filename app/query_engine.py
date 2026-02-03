@@ -56,7 +56,9 @@ class CodeQueryEngine:
         self, 
         query: str, 
         similarity_top_k: Optional[int] = None,
-        return_context_only: bool = False
+        return_context_only: bool = False,
+        min_score: float = 0.0,
+        max_context_chars: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Query the indexed code repository.
@@ -65,6 +67,8 @@ class CodeQueryEngine:
             query: The query string
             similarity_top_k: Number of similar chunks to retrieve
             return_context_only: If True, only return context without LLM response
+            min_score: Minimum relevance score to include (0.0-1.0). Default: 0.0
+            max_context_chars: Maximum total characters to include. Default: None (unlimited)
             
         Returns:
             Dictionary containing the response and/or context
@@ -81,11 +85,24 @@ class CodeQueryEngine:
         # Retrieve relevant nodes
         nodes = retriever.retrieve(query)
         
-        # Format context
+        # Format context with filtering
         context = []
+        total_chars = 0
+        
         for i, node in enumerate(nodes):
+            # Filter by minimum score
+            if node.score < min_score:
+                continue
+            
+            # Check if adding this context exceeds max_context_chars
+            if max_context_chars is not None:
+                chunk_size = len(node.text)
+                if total_chars + chunk_size > max_context_chars:
+                    break
+                total_chars += chunk_size
+            
             context.append({
-                'rank': i + 1,
+                'rank': len(context) + 1,
                 'file_path': node.metadata.get('file_path', 'unknown'),
                 'file_name': node.metadata.get('file_name', 'unknown'),
                 'file_type': node.metadata.get('file_type', 'unknown'),
@@ -121,7 +138,9 @@ class CodeQueryEngine:
     def retrieve_context(
         self,
         query: str,
-        similarity_top_k: Optional[int] = None
+        similarity_top_k: Optional[int] = None,
+        min_score: float = 0.3,
+        max_context_chars: int = 8000
     ) -> str:
         """
         Retrieve only the relevant context as a formatted string.
@@ -130,6 +149,8 @@ class CodeQueryEngine:
         Args:
             query: The query string
             similarity_top_k: Number of similar chunks to retrieve
+            min_score: Minimum relevance score to include. Default: 0.3
+            max_context_chars: Maximum total characters. Default: 8000
             
         Returns:
             Formatted string with relevant code context
@@ -137,7 +158,9 @@ class CodeQueryEngine:
         result = self.query(
             query=query,
             similarity_top_k=similarity_top_k,
-            return_context_only=True
+            return_context_only=True,
+            min_score=min_score,
+            max_context_chars=max_context_chars
         )
         
         # Format context as a readable string

@@ -14,12 +14,19 @@ class Settings(BaseSettings):
     DATA_DIR: Path = Path("data")
     CHROMA_DIR: Path = Path("data/chroma")
     
-    # Embedding model
-    EMBEDDING_MODEL: str = "BAAI/bge-small-en-v1.5"
-    
-    # LLM settings (Ollama)
+    # Embedding model (Ollama - local)
+    EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "llama2"
+    
+    # LLM Provider settings
+    LLM_PROVIDER: str = "ollama"  # "ollama" ou "gemini"
+    
+    # Ollama settings (se usar local)
+    OLLAMA_MODEL: str = "qwen3:1.7b"
+    
+    # Gemini settings (se usar remoto)
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"  # ou gemini-1.5-pro
     
     # Indexing settings
     CHUNK_SIZE: int = 512
@@ -33,7 +40,8 @@ class Settings(BaseSettings):
     SIMILARITY_TOP_K: int = 5
     
     class Config:
-        env_file = ".env"
+        # Caminho absoluto do arquivo .env (na raiz do projeto)
+        env_file = str(Path(__file__).parent.parent / ".env")
         case_sensitive = True
 
 

@@ -12,8 +12,7 @@ from llama_index.core import (
     Settings as LlamaSettings,
 )
 from llama_index.vector_stores.chroma import ChromaVectorStore
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.core.node_parser import SentenceSplitter
+from llama_index.embeddings.ollama import OllamaEmbedding
 import chromadb
 
 from app.config import settings
@@ -33,9 +32,10 @@ class CodeIndexer:
     
     def __init__(self):
         """Initialize the indexer."""
-        # Set up embedding model
-        self.embed_model = HuggingFaceEmbedding(
-            model_name=settings.EMBEDDING_MODEL
+        # Set up embedding model (Ollama)
+        self.embed_model = OllamaEmbedding(
+            model_name=settings.EMBEDDING_MODEL,
+            base_url=settings.OLLAMA_BASE_URL,
         )
         
         # Configure LlamaIndex settings
@@ -91,6 +91,11 @@ class CodeIndexer:
             
             for file in files:
                 file_path = Path(root) / file
+                
+                # Skip excluded file patterns (supports wildcards like *.exe, portable*)
+                if any(fnmatch(file, pattern) for pattern in exclude_dirs):
+                    continue
+                
                 # Only index code files
                 if file_path.suffix in self.CODE_EXTENSIONS:
                     try:
