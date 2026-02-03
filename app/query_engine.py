@@ -7,7 +7,7 @@ from app.config import *
 
 def get_query_engine():
     chroma_client = chromadb.PersistentClient(path=CHROMA_PATH)
-    collection = chroma_client.get_collection("codebase")
+    collection = chroma_client.get_or_create_collection("codebase")
 
     vector_store = ChromaVectorStore(chroma_collection=collection)
 
