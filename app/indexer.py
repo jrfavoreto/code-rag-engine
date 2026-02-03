@@ -4,6 +4,7 @@ Indexer module for indexing code repositories.
 import os
 from pathlib import Path
 from typing import List, Optional
+from fnmatch import fnmatch
 from llama_index.core import (
     VectorStoreIndex,
     SimpleDirectoryReader,
@@ -82,8 +83,11 @@ class CodeIndexer:
         # Load documents from repository
         documents = []
         for root, dirs, files in os.walk(repo_path):
-            # Filter out excluded directories
-            dirs[:] = [d for d in dirs if d not in exclude_dirs]
+            # Filter out excluded directories (supports wildcards)
+            dirs[:] = [
+                d for d in dirs 
+                if not any(fnmatch(d, pattern) for pattern in exclude_dirs)
+            ]
             
             for file in files:
                 file_path = Path(root) / file

@@ -54,14 +54,15 @@ def main():
     print("Initializing Code RAG Indexer...")
     indexer = CodeIndexer()
     
-    # Prepare exclusions
-    exclude_dirs = None
+    # Prepare exclusions - always start with defaults
+    exclude_dirs = [
+        "__pycache__", "node_modules", ".git", ".venv", "venv",
+        "env", "build", "dist", ".pytest_cache", ".mypy_cache",
+        ".tox", "htmlcov", ".eggs", "*.egg-info"
+    ]
+    
+    # Add any additional exclusions from command line
     if args.exclude:
-        exclude_dirs = [
-            "__pycache__", "node_modules", ".git", ".venv", "venv",
-            "env", "build", "dist", ".pytest_cache", ".mypy_cache",
-            ".tox", "htmlcov", ".eggs", "*.egg-info"
-        ]
         exclude_dirs.extend(args.exclude)
     
     # Index repository
