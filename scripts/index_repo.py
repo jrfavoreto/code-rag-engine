@@ -58,7 +58,8 @@ def main():
     exclude_dirs = [
         "__pycache__", "node_modules", ".git", ".venv", "venv",
         "env", "build", "dist", ".pytest_cache", ".mypy_cache",
-        ".tox", "htmlcov", ".eggs", "*.egg-info"
+        ".tox", "htmlcov", ".eggs", "*.egg-info", "instaladores",
+        "teste", "bin", "*.exe", "portable*"
     ]
     
     # Add any additional exclusions from command line

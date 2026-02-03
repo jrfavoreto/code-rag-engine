@@ -38,21 +38,27 @@ code-rag-engine/
 
 ## Instalação
 
+### PowerShell (Windows)
+
 1. Clone o repositório:
 ```bash
 git clone https://github.com/jrfavoreto/code-rag-engine.git
 cd code-rag-engine
 ```
 
-2. Crie um ambiente virtual:
+2. Crie e ative o ambiente virtual:
 ```bash
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-venv\Scripts\activate  # Windows
+python -m venv .venv
+\.venv\Scripts\Activate.ps1
 ```
 
-3. Instale as dependências:
+3. Verifique o Python ativo (opcional):
+```bash
+python --version
+where python
+```
+
+4. Instale as dependências:
 ```bash
 pip install -r requirements.txt
 ```

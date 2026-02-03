@@ -4,9 +4,15 @@ FastAPI application for the Code RAG Engine.
 from typing import Optional, List
 from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel, Field
+import os
+from dotenv import load_dotenv
 
 from app.config import settings
 from app.query_engine import CodeQueryEngine
+from app.llm_provider import get_llm_provider
+
+# Carrega variáveis de ambiente
+load_dotenv()
 
 
 # Pydantic models for API
@@ -47,6 +53,7 @@ class HealthResponse(BaseModel):
     """Response model for health check."""
     status: str
     version: str
+    llm_provider: str = Field(..., description="Tipo de LLM provider: 'ollama' (local) ou 'gemini' (remoto)")
 
 
 # Create FastAPI app
@@ -57,8 +64,9 @@ app = FastAPI(
 )
 
 
-# Global query engine instance (lazy loading)
+# Global instances (lazy loading)
 _query_engine: Optional[CodeQueryEngine] = None
+_llm_provider = None
 
 
 def get_query_engine() -> CodeQueryEngine:
@@ -67,7 +75,7 @@ def get_query_engine() -> CodeQueryEngine:
     if _query_engine is None:
         try:
             _query_engine = CodeQueryEngine(
-                collection_name="code_repository",
+                collection_name="img_converter",
                 use_ollama=False  # Default to context-only mode
             )
         except Exception as e:
@@ -78,12 +86,59 @@ def get_query_engine() -> CodeQueryEngine:
     return _query_engine
 
 
+def get_llm() -> object:
+    """Get or create the LLM provider instance."""
+    global _llm_provider
+    if _llm_provider is None:
+        try:
+            _llm_provider = get_llm_provider()
+        except ValueError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Erro ao configurar LLM: {str(e)}"
+            )
+        except ImportError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Biblioteca faltante: {str(e)}"
+            )
+    return _llm_provider
+
+
+def build_prompt(context: str, question: str) -> str:
+    """
+    Build a RAG prompt with explicit instructions to avoid hallucinations.
+    
+    Args:
+        context: Trechos de código relevantes recuperados pelo RAG
+        question: Pergunta/consulta do usuário
+        
+    Returns:
+        Prompt estruturado com instruções sênior
+    """
+    return f"""Você é um analista de código sênior.
+
+Explique APENAS com base no código fornecido.
+Não assuma comportamentos externos.
+Não generalize.
+Se algo não estiver explícito no código, diga que não é possível afirmar.
+
+### CONTEXTO DO CÓDIGO
+{context}
+
+### PERGUNTA
+{question}
+
+### RESPOSTA"""
+
+
 @app.get("/", response_model=HealthResponse)
 async def root():
     """Root endpoint - health check."""
     return HealthResponse(
         status="ok",
-        version="0.1.0"
+        version="0.1.0",
+        llm_provider=settings.LLM_PROVIDER
     )
 
 
@@ -92,7 +147,8 @@ async def health():
     """Health check endpoint."""
     return HealthResponse(
         status="ok",
-        version="0.1.0"
+        version="0.1.0",
+        llm_provider=settings.LLM_PROVIDER
     )
 
 
@@ -139,6 +195,56 @@ async def get_context(
         raise HTTPException(
             status_code=500,
             detail=f"Context retrieval failed: {str(e)}"
+        )
+
+
+@app.post("/ask", response_model=QueryResponse)
+async def ask_with_llm(request: QueryRequest):
+    """
+    Query with LLM-generated answer (combines context + reasoning).
+    
+    Retrieves relevant code context and sends it to the configured LLM provider
+    (Ollama local or Gemini remoto) for analysis.
+    Returns both the context and the LLM's structured analysis.
+    """
+    try:
+        engine = get_query_engine()
+        
+        # Etapa 1: Recuperar contexto relevante (RAG - Retrieval)
+        result = engine.query(
+            query=request.query,
+            similarity_top_k=request.similarity_top_k,
+            return_context_only=True
+        )
+        
+        if result['num_results'] == 0:
+            raise HTTPException(status_code=404, detail="Nenhum contexto encontrado")
+        
+        # Formata o contexto como texto
+        context_text = "\n\n---\n\n".join(
+            f"Arquivo: {ctx['file_path']} (relevância: {ctx['score']:.3f})\n{ctx['text']}"
+            for ctx in result['context']
+        )
+        
+        # Etapa 2: Construir prompt com instruções sênior
+        prompt = build_prompt(context_text, request.query)
+        
+        # Etapa 3: Enviar para o LLM provider configurado (Ollama ou Gemini)
+        llm = get_llm()
+        llm_answer = llm.generate(prompt)
+        
+        # Retorna contexto + resposta do LLM
+        return QueryResponse(
+            query=request.query,
+            context=result['context'],
+            num_results=result['num_results'],
+            response=llm_answer
+        )
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"LLM query failed: {str(e)}"
         )
 
 
