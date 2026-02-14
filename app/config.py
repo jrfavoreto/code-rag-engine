@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     # Paths
     DATA_DIR: Path = Path("data")
     CHROMA_DIR: Path = Path("data/chroma")
+    GRAPH_DB_PATH: str = str(Path("data/code_graph.db"))
     
     # Embedding model (Ollama - local)
     EMBEDDING_MODEL: str = "nomic-embed-text:v1.5"
@@ -31,6 +32,12 @@ class Settings(BaseSettings):
     # Indexing settings
     CHUNK_SIZE: int = 512
     CHUNK_OVERLAP: int = 50
+    
+    # CodeSplitter settings (para chunking semântico de código)
+    USE_CODE_SPLITTER: bool = True  # Se True, usa CodeSplitter para arquivos de código
+    CODE_CHUNK_LINES: int = 40  # Número de linhas por chunk de código
+    CODE_CHUNK_OVERLAP: int = 15  # Sobreposição entre chunks
+    CODE_MAX_CHARS: int = 1500  # Limite máximo de caracteres por chunk
     
     # API settings
     API_HOST: str = "0.0.0.0"

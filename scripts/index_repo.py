@@ -71,7 +71,7 @@ def main():
         print(f"\nIndexing repository: {repo_path}")
         print(f"Collection name: {args.collection_name}\n")
         
-        index = indexer.index_repository(
+        index, stats = indexer.index_repository(
             repo_path=str(repo_path),
             collection_name=args.collection_name,
             exclude_dirs=exclude_dirs
@@ -79,6 +79,11 @@ def main():
         
         print("\n✓ Repository indexed successfully!")
         print(f"Collection: {args.collection_name}")
+        print(f"\nIndexing Statistics:")
+        print(f"  • Files processed: {stats['files_processed']}")
+        print(f"  • Vector chunks: {stats['vector_chunks']}")
+        print(f"  • Graph nodes: {stats['graph_nodes']}")
+        print(f"  • Graph edges: {stats['graph_edges']}")
         print("\nYou can now query the repository using:")
         print("  - The FastAPI server: python -m app.api")
         print("  - Or directly with CodeQueryEngine in Python")

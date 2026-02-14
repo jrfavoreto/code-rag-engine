@@ -35,10 +35,13 @@ def ask_ollama(context: str, question: str) -> str:
     # Monta o prompt estruturado com contexto e pergunta
     prompt = f"""
 Você é um analista de código sênior analisando um repositório de código.
-Explique APENAS o que a função faz, com base estrita no código fornecido.
-Não assuma comportamentos fora da função.
-Não generalize.
-Se algo não estiver claro no código, diga explicitamente.
+INSTRUÇÕES CRÍTICAS:
+1. Explique APENAS com base no código fornecido
+2. Cite trechos específicos do código quando afirmar algo
+3. Se algo não estiver explícito, diga "não é possível afirmar"
+4. Não inverta lógicas (ex: "maior" vs "menor"). Não generalize.
+5. Seja preciso em condicionais e comparações
+6. Não assuma comportamentos fora da função.
 
 CONTEXTO (trechos relevantes do código):
 {context}
@@ -89,33 +92,57 @@ def main():
     """Função principal: executa o pipeline RAG completo com LLM."""
     
     # Inicializa o engine com a coleção indexada
+    print("🚀 Inicializando Code RAG Engine...")
     engine = CodeQueryEngine(collection_name="img_converter")
+    print()
 
-    # Pergunta que será respondida com base no repositório
-    #question = "O que acontece quando compress_pdf() é executado?"
-    # força raciocínio procedural...
-    question = "Explique passo a passo a lógica interna da função compress_pdf(), incluindo critérios de decisão e efeitos colaterais no sistema de arquivos."
+    # Recebe a pergunta do usuário via terminal
+    print("=" * 70)
+    print("💬 Digite sua pergunta sobre o código (ou 'sair' para encerrar)")
+    print("=" * 70)
+    
+    while True:
+        question = input("\n❓ Pergunta: ").strip()
+        
+        # Verifica se o usuário quer sair
+        if question.lower() in ['sair', 'exit', 'quit', 'q']:
+            print("\n👋 Encerrando...")
+            break
+        
+        # Valida se a pergunta não está vazia
+        if not question:
+            print("⚠️  Por favor, digite uma pergunta válida.")
+            continue
+        
+        print()  # Linha em branco para separar
 
-    # Etapa 1: Recuperar contexto relevante (RAG - Retrieval)
-    print("🔎 Recuperando contexto do código...\n")
-    result = engine.query(question)
+        # Etapa 1: Recuperar contexto relevante (RAG - Retrieval)
+        print("🔎 Recuperando contexto do código...\n")
+        result = engine.query(question)
 
-    # Formata os chunks recuperados em um texto estruturado
-    # Inclui arquivo, score (relevância) e conteúdo
-    context = "\n\n".join(
-        f"Arquivo: {ctx['file_path']} (relevância: {ctx['score']:.3f})\n{ctx['text']}"
-        for ctx in result['context']
-    )
+        # Formata os chunks recuperados em um texto estruturado
+        # Inclui arquivo, score (relevância) e conteúdo
+        context = "\n\n".join(
+            f"Arquivo: {ctx['file_path']} (relevância: {ctx['score']:.3f})\n{ctx['text']}"
+            for ctx in result['context']
+        )
 
-    # Etapa 2: Enviar contexto + pergunta para o LLM (Augmentation + Generation)
-    print("🧠 Enviando contexto para o LLM...\n")
-    answer = ask_ollama(context, question)
+        # Etapa 2: Enviar contexto + pergunta para o LLM (Augmentation + Generation)
+        print("🧠 Enviando contexto para o LLM...\n")
+        answer = ask_ollama(context, question)
 
-    # Etapa 3: Exibir resposta gerada
-    print("✅ Resposta final:\n")
-    print(answer)
+        # Etapa 3: Exibir resposta gerada
+        print("✅ Resposta:\n")
+        print(answer)
+        print("\n" + "=" * 70)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n👋 Interrompido pelo usuário. Até logo!")
+    except Exception as e:
+        print(f"\n❌ Erro fatal: {e}")
+        sys.exit(1)
 

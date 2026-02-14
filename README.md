@@ -49,7 +49,7 @@ cd code-rag-engine
 2. Crie e ative o ambiente virtual:
 ```bash
 python -m venv .venv
-\.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1
 ```
 
 3. Verifique o Python ativo (opcional):
@@ -58,19 +58,69 @@ python --version
 where python
 ```
 
-4. Instale as dependências:
+4. Ativar o ambiente virtual python
+
+* Ativar : 
+
+```bash
+# PowerShell (Windows)
+.\.venv\Scripts\Activate.ps1
+# Bash/Zsh (Linux/Mac)
+source .venv/bin/activate
+```
+
+* Desativar: 
+
+```bash
+deactivate
+```
+
+* se aparecer erro de execução de scripts:
+
+```bash
+# Execute como Administrador (uma vez apenas)
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+5. Instale as dependências:
 ```bash
 pip install -r requirements.txt
+```
+
+## Ollama rodando
+
+* Verificação
+
+```bash
+# Teste se o Ollama responde
+curl http://localhost:11434
+
+# Ou liste os modelos disponíveis
+ollama list
+
+# Se aparecer algo como, tá ok:
+Ollama is running
+```
+
+* Subir o Ollama
+
+```bash
+ollama serve
 ```
 
 ## Uso
 
 ### 1. Indexar um Repositório
 
-Use o script CLI para indexar um repositório de código:
+* Use o script CLI para indexar um repositório de código:
 
 ```bash
 python scripts/index_repo.py /caminho/para/repositorio
+```
+
+* Exemplo real:
+```bash
+python scripts/index_repo.py C:\desenv\img-converter --collection-name img_converter --exclude test ghostscript instaladores azure_theme
 ```
 
 Opções adicionais:
